@@ -1,0 +1,57 @@
+{
+    admin off
+    auto_https off
+}
+
+:80 {
+    root * /htdocs
+    encode zstd gzip
+    file_server
+
+    # Security Rules: Block sensitive files and framework internals
+    @denied_sensitive {
+        path *.sqlite
+        path *.sqlite3
+        path *.db
+        path *.env*
+        path *.zip
+        path *.git*
+        path *.md
+        path /database/*
+        path /storage/logs/*
+        path /app/*
+        path /bootstrap/*
+        path /config/*
+        path /routes/*
+        path /tests/*
+        path /artisan
+        path /composer.*
+        path /package.*
+    }
+    respond @denied_sensitive 403
+
+    # Dotfiles protection
+    @dotfiles path_regexp (^|/)\.[^/]+$
+    respond @dotfiles 403
+
+    # Long cache for static assets
+    @static {
+        file
+        path *.ico *.css *.js *.gif *.webp *.avif *.jpg *.jpeg *.png *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "max-age=31536000, public, immutable"
+
+    # Security Headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Route dynamic requests to PHP-FPM
+    php_fastcgi 127.0.0.1:9000 {
+        try_files {path} {path}/ /index.php?{query}
+    }
+}
