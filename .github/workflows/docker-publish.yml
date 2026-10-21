@@ -49,6 +49,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine LinkStack version
+        id: ls_version
+        run: |
+          if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
+            VER="${GITHUB_REF#refs/tags/}"
+          elif [ -n "${{ inputs.target_tag }}" ]; then
+            VER="${{ inputs.target_tag }}"
+          else
+            VER=$(grep 'ARG LINKSTACK_VERSION=' Dockerfile | cut -d= -f2 | tr -d '[:space:]')
+          fi
+          echo "version=${VER:-v4.8.6}" >> "$GITHUB_OUTPUT"
+          CLEAN="${VER#v}"
+          echo "clean_version=${CLEAN:-4.8.6}" >> "$GITHUB_OUTPUT"
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -59,22 +73,13 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=${{ inputs.target_tag }},enable=${{ inputs.target_tag != '' }}
+            type=raw,value=${{ steps.ls_version.outputs.version }}
+            type=raw,value=${{ steps.ls_version.outputs.clean_version }}
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') || github.ref == format('refs/heads/{0}', 'master') }}
             type=raw,value=php8.4
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
-
-      - name: Determine LinkStack version
-        id: ls_version
-        run: |
-          if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
-            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ inputs.target_tag }}" ]; then
-            echo "version=${{ inputs.target_tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=v4.8.6" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
