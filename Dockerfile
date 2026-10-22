@@ -6,7 +6,7 @@ FROM caddy:2-alpine AS caddy-bin
 
 # Step 2: Download LinkStack Release
 FROM alpine:3.21 AS linkstack-src
-ARG LINKSTACK_VERSION=v4.8.6
+ARG LINKSTACK_VERSION=v4.8.8
 RUN apk add --no-cache curl unzip && \
     curl -fsSL -o /tmp/linkstack.zip "https://github.com/LinkStackOrg/LinkStack/releases/download/${LINKSTACK_VERSION}/linkstack.zip" && \
     mkdir -p /htdocs-src && \
